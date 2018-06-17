@@ -68,7 +68,7 @@ def plotTest():
         
 
 
-def test():
+def KFtest():
     dt = 0.001
 
 
