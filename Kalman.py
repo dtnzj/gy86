@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import numpy as np
 import math
@@ -10,36 +11,59 @@ import time
 import numpy as np
 
 class static_var():
-    y_static = 0;
-    ylist = np.array([])
+    y_static = 0
+    ylist = np.array([[0],[0]])
+    t = None
+    
     def get_some_measurement(self):
         
-        t = time.clock()
-        y = math.sin( 0.1 * math.pi* t)
-        ydot = y - self.y_static
-        self.y_static = y
-        # return (np.array([y, ydot]).T )
-        return (np.array(y))
+        self.t = np.linspace(0, 1, 1e3)
+        
+        #  self.t = time.clock()
+        y = list(map(math.sin,2 * math.pi* self.t))
+        y = np.asarray(y)
+        # y = math.sin( 2 * math.pi* self.t)
+        r = np.random.normal(0,0.1,size= 1000)
+        y = y + r
+        ydot = np.diff(y)
+        # ydot = np.array([0, ydot])
+        ydot = np.insert(ydot, 0, 0)
+        print(y.size)
+        print(ydot.size)
+        # ydot = y - self.y_static
+        # self.y_static = y
+        tmp = np.asarray([y, ydot]).T
+        return ( tmp )
+        # return (np.array(y))
     
     def do_something_amazing(self, x):
-        self.ylist = np.hstack((self.ylist, x))
-        
-
-        plt.plot(self.ylist)
-        plt.draw()
+        pass
         
 
 
 def plotTest():
     k = static_var();
+
     plt.ion()
+    
+    tmp = k.get_some_measurement()
+    print (tmp)
+    # print (self.ylist)
+    # print (x)
+    
+    # self.ylist = np.hstack((self.ylist, x.T))
+    
+    # print(self.ylist.shape)
+    # print (self.ylist)
     plt.figure(1)
-    plt.show()
-    while 1:
-        tmp = k.get_some_measurement()
-        print (tmp)
-        k.do_something_amazing(tmp)
-        plt.pause(0.01)
+    self.ylist = x 
+    plt.plot( x[:, 0 ])
+    # plt.plot(self.t, self.ylist[1])
+    
+    # plt.show()
+    # k.do_something_amazing(tmp)
+    # plt.pause(0.001)
+    x = input()
 
         
 
@@ -57,24 +81,44 @@ def test():
                             [0.0, 1.0]])    
     # state transition matrix
 
-    my_filter.H = np.array([[1.0, 0.0]])    
+    my_filter.H = np.array([[1.0, 0.0]])
     # Measurement function
-    my_filter.P *= 1000.                 
+    # my_filter.P = 1000.
     # covariance matrix
-    my_filter.R = 5                      
+    my_filter.R = 0.1
     # state uncertainty
-    my_filter.Q = Q_discrete_white_noise(2, dt, 0.1) 
+    my_filter.Q = Q_discrete_white_noise(2, dt, 1e5) 
     # process uncertainty
 
-
-    while True:
+    x_list = list()
+    
+    k = static_var()
+    tmp = k.get_some_measurement()
+    for i in tmp: 
         my_filter.predict()
-        my_filter.update(get_some_measurement())
+        # print ( i )
+        my_filter.update( i[0] )
 
         # do something with the output
-        x = my_filter.x
-        do_something_amazing(x)
-    pass
+        # x_list = my_filter.x
+        # print( my_filter.x)
+
+        x_list.append( my_filter.x[0][0].tolist() )
+    
+    # plt.figure(1)
+    # plt.plot( tmp ) 
+    a = tmp[:, 0]
+    b = np.asarray( x_list )
+    c = np.vstack((a,b)).T
+
+    plt.figure(2)
+    # tmp = np.asarray(tmp).T
+    plt.plot( c )
+    # plt.plot( np.hstack((x_list, tmp)) )
+    plt.show()
+
+    input() 
+    
 
 if __name__ == "__main__":
-    plotTest();
+    test();
