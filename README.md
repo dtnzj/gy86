@@ -21,4 +21,10 @@ same as the last
 Combine all of the data from chips in gy86, and add the KF support. 
 ### Kalman filter
 filter the data from chips. 
+1. capture the 3-D data
+2. display the data
+    3. a child proc for data display
+    4. how to simulate that for no sensors given. 
+3. give the filtered data with KF
+2. make a 3-D KF model for gyro and acc data filter. 
 
