@@ -7,24 +7,26 @@ import matplotlib.pyplot as plt
 
 from filterpy.kalman import KalmanFilter
 from filterpy.common import Q_discrete_white_noise
-import time 
-import numpy as np
-from multiprocessing import Pool
+
+
+from multiprocessing import Pool, Process, Queue, Value
+# from queue import Queue 
 import os, time
 
 
 class KF():
-    
+
     dataDisp_flag = 1
     dt = None
     kf = None
     dataList = None
+    que = None
     def __init__(self):
-        
+
         # if the data dispaly flag is true, call the proc init funcion
         if self.dataDisp_flag == 1:
             self.__dataDispProcInit()
-        
+
         # init the kf
         self.__kfInit()
 
@@ -34,10 +36,10 @@ class KF():
         # initial state (location and velocity)
         self.kf.x = np.array([[0.0],
                               [0.0]])       
-        
+
         # state transition matrix
         self.kf.F = np.array([[1.0, self.dt ],
-                                [0.0, 1.0]])    
+                              [0.0, 1.0]])    
         
         # Measurement function
         self.kf.H = np.array([[1.0, 0.0]])
@@ -53,49 +55,73 @@ class KF():
         self.dataList = list()
         while True:
             
-            data = self.__simDataGen()
+            data = self.simDataGen()
             self.kf.predict()
             
             self.kf.update( data )
             
-            self.dataList.append( self.kf.x[0].tolist() )
+            if self.dataDisp_flag == 1 and self.que != None:
+                # self.que.put( self.kf.x[0].tolist()[0] )
+                self.que.value = self.kf.x[0].tolist()[0]
+                pass
+            # self.dataList.append( self.kf.x[0].tolist()[0] )
+
+            time.sleep( 0.5 )
+
+            print( self.kf.x[0])
         
-        pass
+        
     def kfupdate(self):
         
-        data = self.__simDataGen()
+        data = self.simDataGen()
         self.kf.predict()
         
         self.kf.update( data )
 
-        pass
+        
     def __dataDispProcInit(self):
         
         # see multi_proc.py file for details
         print('Data display process loading...')
-        p = Pool(1)
-        p.apply_async(self.dataDisp, args=('',))
-        p.close()
+        self.que = Value('f', 0)
+        qq = self.que 
+        # p = Pool(4)
+        # p.apply_async(self.dataDisp, args = (que, )) 
+        # p.close()
+        p = Process(target = self.dataDisp, args = (qq, )) 
+        
+        p.start()
+
         print('Data display process start.')
 
-    def dataDisp(self):
-        
-        plt.ion ()  # 开启matplotlib的交互模式
-        print('Data display process running...')    
+    def dataDisp(self, q):
+        print(q.value) 
+        plt.ion()  # 开启matplotlib的交互模式
+        print('Data display process running...')
+        self.dataList = list()
         while 1:
             print('tmp data displaying!')
+            tmp = self.dataList
+            # print ( tmp.size )
+            
             # time.sleep(1)
         
             # plt.xlim (0, 50)  # 首先得设置一个x轴的区间 这个是必须的
             # plt.ylim (-int (Y_lim), int (Y_lim))  # y轴区间
+            # print( q.empty())
+            # while not q.empty():
+            self.dataList.append( q.value )
+            
             plt.plot (self.dataList)  # 将list传入plot画图
+            
             plt.pause (1)  # 这个为停顿0.01s，能得到产生实时的效果
 
-    def __simDataGen(self):
+    def simDataGen(self):
         # self.t = np.linspace(0, 1, 1e3)
         
         t = time.clock()
-        y = list(map(math.sin,2 * math.pi* t))
+        # y = list(map(math.sin,2 * math.pi* t))
+        y = math.sin( 2 * math.pi* t )
         y = np.asarray(y)
         # y = math.sin( 2 * math.pi* self.t)
         r = np.random.normal(0,0.1,size= 1)
@@ -109,6 +135,7 @@ class KF():
         # self.y_static = y
         # tmp = np.asarray([y, ydot]).T
         # return ( tmp )
+        
         return ( y )
         # return (np.array(y))
 
@@ -119,9 +146,12 @@ def KFtest():
 
     k.sim()
 
-    pass
+def test():
+    k = KF()
+    while True:
+        print( k.simDataGen() )
 
+    pass
 
 if __name__ == "__main__":
-    KFtest();
-    pass
+    KFtest()
