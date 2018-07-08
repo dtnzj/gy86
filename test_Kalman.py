@@ -14,7 +14,8 @@ Functions:
 To Do:
     TD1. a child proc for data display
     TD2. simulate that for no sensors given.
-
+    TD3. read the details about Kalman filter in IMU[1]. It gives a differenct method to apply KF. 
+        [1]: (https://github.com/wildcat5566/MPU6050_Kalman_RPi/blob/master/kalman.py)
 Problem:
 
 Bug:
