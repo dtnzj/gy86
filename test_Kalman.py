@@ -9,23 +9,22 @@ from filterpy.kalman import KalmanFilter
 from filterpy.common import Q_discrete_white_noise
 
 
-from multiprocessing import Pool, Process, Queue, Value
-# from queue import Queue 
+from multiprocessing import Pool, Process, Queue
 import os, time
 
 
 class KF():
 
-    dataDisp_flag = 1
+    dataPlot_flag = 1
     dt = None
     kf = None
-    dataDisp = None
+    dataPlot = None
     que = None
     def __init__(self):
 
         # if the data dispaly flag is true, call the proc init funcion
-        if self.dataDisp_flag == 1:
-            self.__dataDispProcInit()
+        if self.dataPlot_flag == 1:
+            self.__dataPlotProcInit()
 
         # init the kf
         self.__kfInit()
@@ -60,15 +59,12 @@ class KF():
             
             self.kf.update( data )
             
-            if self.dataDisp_flag == 1 and self.que != None:
+            if self.dataPlot_flag == 1 and self.que != None:
                 self.que.put( self.kf.x[0].tolist()[0] )
-                # self.que.put(self.kf.x[0].tolist()[0] )
-                # pass
-            # self.dataDisp.append( self.kf.x[0].tolist()[0] )
 
-            time.sleep( 0.1 )
+            time.sleep( 0.01 )
 
-            print( self.kf.x[0])
+            # print( self.kf.x[0])
         
         
     def kfupdate(self):
@@ -79,51 +75,46 @@ class KF():
         self.kf.update( data )
 
         
-    def __dataDispProcInit(self):
+    def __dataPlotProcInit(self):
         
         # see multi_proc.py file for details
         print('Data display process loading...')
         self.que = Queue()
         qq = self.que
-        # p = Pool(4)
-        # p.apply_async(self.dataDisp, args = (que, )) 
-        # p.close()
-        p = Process(target = self.dataDisp, args = (qq, )) 
+        
+        p = Process(target = self.dataPlot, args = (self.que, )) 
         
         p.start()
 
         print('Data display process start.')
 
-    def dataDisp(self, q):
+    def dataPlot(self, q):
         
         plt.ion()  # 开启matplotlib的交互模式
         print('Data display process running...')
-        self.dataDisp = list()
+        self.dataPlot = list()
         while 1:
-            print('tmp data displaying!')
-            tmp = self.dataDisp
-            # print ( tmp.size )
+            # print('data plotting!')
             
-            # time.sleep(1)
-        
             # plt.xlim (0, 50)  # 首先得设置一个x轴的区间 这个是必须的
             # plt.ylim (-int (Y_lim), int (Y_lim))  # y轴区间
             # print( q.empty())
-            while not q.empty():
-                tmp = q.get()
-                print ( tmp )
-                self.dataDisp.append( tmp )
+            if not q.empty():
+                while not q.empty():
+                    self.dataPlot.append( q.get() )
+                
+                # plt.draw
+                plt.plot (self.dataPlot)
+                
             
-            plt.plot (self.dataDisp)  # 将list传入plot画图
-            
-            plt.pause (1)  # 这个为停顿0.01s，能得到产生实时的效果
+            plt.pause (1) 
 
     def simDataGen(self):
         # self.t = np.linspace(0, 1, 1e3)
         
         t = time.clock()
         # y = list(map(math.sin,2 * math.pi* t))
-        y = math.sin( 2 * math.pi* t )
+        y = math.sin( 20 * math.pi* t )
         y = np.asarray(y)
         # y = math.sin( 2 * math.pi* self.t)
         r = np.random.normal(0,0.1,size= 1)
