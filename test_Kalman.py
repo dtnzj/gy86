@@ -7,118 +7,153 @@ import matplotlib.pyplot as plt
 
 from filterpy.kalman import KalmanFilter
 from filterpy.common import Q_discrete_white_noise
-import time 
-import numpy as np
 
-class static_var():
-    y_static = 0
-    ylist = np.array([[0],[0]])
-    t = None
-    
-    def get_some_measurement(self):
+
+from multiprocessing import Pool, Process, Queue, Value
+# from queue import Queue 
+import os, time
+
+
+class KF():
+
+    dataDisp_flag = 1
+    dt = None
+    kf = None
+    dataDisp = None
+    que = None
+    def __init__(self):
+
+        # if the data dispaly flag is true, call the proc init funcion
+        if self.dataDisp_flag == 1:
+            self.__dataDispProcInit()
+
+        # init the kf
+        self.__kfInit()
+
+    def __kfInit(self):
+        self.dt = 0.001
+        self.kf = KalmanFilter(dim_x=2, dim_z=1)
+        # initial state (location and velocity)
+        self.kf.x = np.array([[0.0],
+                              [0.0]])       
+
+        # state transition matrix
+        self.kf.F = np.array([[1.0, self.dt ],
+                              [0.0, 1.0]])    
         
-        self.t = np.linspace(0, 1, 1e3)
+        # Measurement function
+        self.kf.H = np.array([[1.0, 0.0]])
+        # covariance matrix
+        # self.kf.P = 1000.
+        # state uncertainty
+        self.kf.R = 0.1
+        # process uncertainty
+        self.kf.Q = Q_discrete_white_noise(2, self.dt, 1e5) 
+
+    def sim(self):
         
-        #  self.t = time.clock()
-        y = list(map(math.sin,2 * math.pi* self.t))
+        
+        while True:
+            
+            data = self.simDataGen()
+            self.kf.predict()
+            
+            self.kf.update( data )
+            
+            if self.dataDisp_flag == 1 and self.que != None:
+                self.que.put( self.kf.x[0].tolist()[0] )
+                # self.que.put(self.kf.x[0].tolist()[0] )
+                # pass
+            # self.dataDisp.append( self.kf.x[0].tolist()[0] )
+
+            time.sleep( 0.1 )
+
+            print( self.kf.x[0])
+        
+        
+    def kfupdate(self):
+        
+        data = self.simDataGen()
+        self.kf.predict()
+        
+        self.kf.update( data )
+
+        
+    def __dataDispProcInit(self):
+        
+        # see multi_proc.py file for details
+        print('Data display process loading...')
+        self.que = Queue()
+        qq = self.que
+        # p = Pool(4)
+        # p.apply_async(self.dataDisp, args = (que, )) 
+        # p.close()
+        p = Process(target = self.dataDisp, args = (qq, )) 
+        
+        p.start()
+
+        print('Data display process start.')
+
+    def dataDisp(self, q):
+        
+        plt.ion()  # 开启matplotlib的交互模式
+        print('Data display process running...')
+        self.dataDisp = list()
+        while 1:
+            print('tmp data displaying!')
+            tmp = self.dataDisp
+            # print ( tmp.size )
+            
+            # time.sleep(1)
+        
+            # plt.xlim (0, 50)  # 首先得设置一个x轴的区间 这个是必须的
+            # plt.ylim (-int (Y_lim), int (Y_lim))  # y轴区间
+            # print( q.empty())
+            while not q.empty():
+                tmp = q.get()
+                print ( tmp )
+                self.dataDisp.append( tmp )
+            
+            plt.plot (self.dataDisp)  # 将list传入plot画图
+            
+            plt.pause (1)  # 这个为停顿0.01s，能得到产生实时的效果
+
+    def simDataGen(self):
+        # self.t = np.linspace(0, 1, 1e3)
+        
+        t = time.clock()
+        # y = list(map(math.sin,2 * math.pi* t))
+        y = math.sin( 2 * math.pi* t )
         y = np.asarray(y)
         # y = math.sin( 2 * math.pi* self.t)
-        r = np.random.normal(0,0.1,size= 1000)
+        r = np.random.normal(0,0.1,size= 1)
         y = y + r
-        ydot = np.diff(y)
+        # ydot = np.diff(y)
         # ydot = np.array([0, ydot])
-        ydot = np.insert(ydot, 0, 0)
-        print(y.size)
-        print(ydot.size)
+        # ydot = np.insert(ydot, 0, 0)
+        # print(y.size)
+        # print(ydot.size)
         # ydot = y - self.y_static
         # self.y_static = y
-        tmp = np.asarray([y, ydot]).T
-        return ( tmp )
+        # tmp = np.asarray([y, ydot]).T
+        # return ( tmp )
+        
+        return ( y )
         # return (np.array(y))
-    
-    def do_something_amazing(self, x):
-        pass
-        
-
-
-def plotTest():
-    k = static_var();
-
-    plt.ion()
-    
-    tmp = k.get_some_measurement()
-    print (tmp)
-    # print (self.ylist)
-    # print (x)
-    
-    # self.ylist = np.hstack((self.ylist, x.T))
-    
-    # print(self.ylist.shape)
-    # print (self.ylist)
-    plt.figure(1)
-    self.ylist = x 
-    plt.plot( x[:, 0 ])
-    # plt.plot(self.t, self.ylist[1])
-    
-    # plt.show()
-    # k.do_something_amazing(tmp)
-    # plt.pause(0.001)
-    x = input()
-
-        
 
 
 def KFtest():
-    dt = 0.001
-
-
-    my_filter = KalmanFilter(dim_x=2, dim_z=1)
-    my_filter.x = np.array([[0.0],
-                            [0.0]])       
-    # initial state (location and velocity)
-
-    my_filter.F = np.array([[1.0, dt ],
-                            [0.0, 1.0]])    
-    # state transition matrix
-
-    my_filter.H = np.array([[1.0, 0.0]])
-    # Measurement function
-    # my_filter.P = 1000.
-    # covariance matrix
-    my_filter.R = 0.1
-    # state uncertainty
-    my_filter.Q = Q_discrete_white_noise(2, dt, 1e5) 
-    # process uncertainty
-
-    x_list = list()
     
-    k = static_var()
-    tmp = k.get_some_measurement()
-    for i in tmp: 
-        my_filter.predict()
-        # print ( i )
-        my_filter.update( i[0] )
+    k = KF()
 
-        # do something with the output
-        # x_list = my_filter.x
-        # print( my_filter.x)
+    k.sim()
 
-        x_list.append( my_filter.x[0][0].tolist() )
-    
-    # plt.figure(1)
-    # plt.plot( tmp ) 
-    a = tmp[:, 0]
-    b = np.asarray( x_list )
-    c = np.vstack((a,b)).T
+def test():
+    k = KF()
+    while True:
+        print( k.simDataGen() )
 
-    plt.figure(2)
-    # tmp = np.asarray(tmp).T
-    plt.plot( c )
-    # plt.plot( np.hstack((x_list, tmp)) )
-    plt.show()
-
-    input() 
-    
+    pass
 
 if __name__ == "__main__":
-    KFtest();
+    KFtest()
