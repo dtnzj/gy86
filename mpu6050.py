@@ -5,6 +5,13 @@ Released under the MIT License
 Copyright (c) 2015, 2016, 2017 MrTijn/Tijndagamer
 """
 
+'''
+
+To Do:
+    TD1. read [1], it gives a function rich 
+        [1]: https://github.com/thisisG/MPU6050-I2C-Python-Class/blob/master/MPU6050.py
+'''
+
 import smbus
 
 class mpu6050:
