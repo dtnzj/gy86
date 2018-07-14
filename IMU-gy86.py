@@ -7,19 +7,29 @@ This program works for Combine all of the data from chips in gy86, and add the K
 
 Functions:
     F1. Use the IMU update to combine the data sensors.
+
 To Do:
     TD1. add IMUupdata function
-
+    TD2. IMUupdata test
+    TD3. the print func will slow down the func compute speed, 
+        so it is needed to create a new process to run IMU and print in the main proc.
 Problem:
-
+    P1. the IMUupdata func gives an incorrect result, which is think to be caused 
+        by the sampling time
+    P2. 
 Bug:
-    
+    B1. In TD3, the LoopTime cannot tranmit to the print pro, only 0 printed. 
+        And the other variable is transmit correctly.
+
 Upgrades description:
-    
+    2018/07/14  Add the IMUupdate func bases on the C code.
+                Add a child proc to run the IMU func 
+                and print the varibles in the main proc. (P1, B1)
 '''
 
 
 from mpu6050 import mpu6050
+from multiprocessing import Process, Manager, Value
 # from hmc5883l.hmc5883l import hmc5883l
 import time
 import math
@@ -27,7 +37,7 @@ import math
 class IMU():
     '''
     '''
-
+    Gyro_G 	= 0.0610351	
     Gyro_Gr = 0.0010653
 
     # proportional gain governs rate of convergence to accelerometer/magnetometer
@@ -51,16 +61,56 @@ class IMU():
     eyInt = 0
     ezInt = 0
     
+    # angle = {'yaw': 0, 'pit': 0, 'rol': 0 }
+    manager = Manager()
+    angle = manager.dict()
+    angle['yaw'] = 0
+    angle['pit'] = 0
+    angle['rol'] = 0
     
-    angle = {'yaw': 0, 'pit': 0, 'rol': 0 }
-
-
+    LoopTime = Value('f',0)
+    
     def __init__(self):
         self.mpu = mpu6050(0x68)
         self.hmc = None
         self.ms  = None
+        self.__imuProcInit()
 
+    def __imuProcInit(self):
+        '''
+        Request a independent process to updat the IMU
+        '''
+        # see multi_proc.py file for details
+        print('IMUupdata process loading...')
+        # intial the plot data transfer queue
+        
+        # request the process
+        p = Process(target = self.__IMUupdataProc)
+        # child process start
+        p.start()
+
+        print('Data display process start.')
     
+    def __IMUupdataProc(self):
+        
+        t = time.time()
+        count = 0 
+        while True:
+            count += 1
+            self.IMUupdata()
+            
+            if count >=100:
+                count = 0
+                t_end = time.time()
+                self.LoopTime.value = t_end -t
+                print( t_end, self.LoopTime.value) 
+                print( t_end, self.LoopTime.value) 
+                print( t_end, self.LoopTime.value) 
+                t = t_end
+            
+            time.sleep(0.001)
+
+        
     def IMUupdata(self):
         '''
         Give the Euler angles with the data of gyr and acc sensor.
@@ -150,12 +200,12 @@ class IMU():
         q2 = q2 / norm
         q3 = q3 / norm
 
-        self.angle['yaw'] += gyr['z'] * Gyro_G * 0.002
+        self.angle['yaw'] += gyr['z'] * self.Gyro_G * 0.002
 
         # pitch
-        self.angle['pit'] = asin(-2 * q1 * q3 + 2 * q0 * q2)* 57.3 - self.AngleOffset_Pit
+        self.angle['pit'] = math.asin(-2 * q1 * q3 + 2 * q0 * q2)* 57.3 - self.AngleOffset_Pit
         # roll
-        self.angle['rol'] = -atan2(2 * q2 * q3 + 2 * q0 * q1, -2 * q1 * q1 - 2 * q2* q2 + 1)* 57.3 - self.AngleOffset_Rol
+        self.angle['rol'] = -math.atan2(2 * q2 * q3 + 2 * q0 * q1, -2 * q1 * q1 - 2 * q2* q2 + 1)* 57.3 - self.AngleOffset_Rol
         
     
     
@@ -182,12 +232,13 @@ class IMU():
 
 def test():
     k = IMU()
-    while True:
-        k.mpu6050read()
+    # while True:
+    #     k.mpu6050read()
     
     while True:
-        k.IMUupdata()
-        print( 'x= %f, y= %f, z= %f\r'%( k.angle['rol'], k.angle['pit'], k.angle['yaw']),end = '')
+        print( ' x= %f, y= %f, z= %f'%( k.angle['rol'], k.angle['pit'], k.angle['yaw']),'loop time = %f\r '% (k.LoopTime.value), end = '')
+        # print( 'loop time = %f\r '% (k.LoopTime.value) )
+        
         time.sleep(0.1)
 
     pass
