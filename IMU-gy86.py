@@ -11,17 +11,21 @@ Functions:
 To Do:
     TD1. add IMUupdata function
     TD2. IMUupdata test
-    TD3. the print func will slow down the func compute speed, 
-        so it is needed to create a new process to run IMU and print in the main proc.
+    TD3. 
+    
 Problem:
     P1. the IMUupdata func gives an incorrect result, which is think to be caused 
         by the sampling time
-    P2. 
+    P2. this code runs too slow, it is consider to be because the low speed of python 
+        or the iic speed of raspberry pi. IIC speed is changed to test, which improve a bit, 
+        but still too slow. 
 Bug:
-    B1. In TD3, the LoopTime cannot tranmit to the print pro, only 0 printed. 
-        And the other variable is transmit correctly.
+    B1. 
 
 Upgrades description:
+    2018/07/15  Solve the bug that the loop time transmit between the IMUupdata proc 
+                and the main proc by add the transfer variable into proc args.
+
     2018/07/14  Add the IMUupdate func bases on the C code.
                 Add a child proc to run the IMU func 
                 and print the varibles in the main proc. (P1, B1)
@@ -36,6 +40,7 @@ import math
 
 class IMU():
     '''
+    IMU()
     '''
     Gyro_G 	= 0.0610351	
     Gyro_Gr = 0.0010653
@@ -85,13 +90,13 @@ class IMU():
         # intial the plot data transfer queue
         
         # request the process
-        p = Process(target = self.__IMUupdataProc)
+        p = Process(target = self.__IMUupdataProc, args = (self.LoopTime,))
         # child process start
         p.start()
 
         print('Data display process start.')
     
-    def __IMUupdataProc(self):
+    def __IMUupdataProc(self, LoopTime):
         
         t = time.time()
         count = 0 
@@ -102,13 +107,10 @@ class IMU():
             if count >=100:
                 count = 0
                 t_end = time.time()
-                self.LoopTime.value = t_end -t
-                print( t_end, self.LoopTime.value) 
-                print( t_end, self.LoopTime.value) 
-                print( t_end, self.LoopTime.value) 
+                LoopTime.value = t_end -t
                 t = t_end
             
-            time.sleep(0.001)
+            # time.sleep(0.01)
 
         
     def IMUupdata(self):
@@ -121,7 +123,7 @@ class IMU():
         '''
         acc = self.mpu.get_accel_data()
         gyr = self.mpu.get_gyro_data()
-        
+
         ax = acc['x']
         ay = acc['y']
         az = acc['z']
@@ -129,7 +131,7 @@ class IMU():
         gx = gyr['x']
         gy = gyr['y']
         gz = gyr['z']
-
+        
         q0 = self.q0
         q1 = self.q1
         q2 = self.q2
