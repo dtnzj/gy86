@@ -42,15 +42,15 @@ class IMU():
     '''
     IMU()
     '''
-    Gyro_G 	= 0.0610351	
-    Gyro_Gr = 0.0010653
+    Gyro_G 	= 0.0610351
+    # Gyro_Gr = 0.0010653
 
     # proportional gain governs rate of convergence to accelerometer/magnetometer
     Kp = 10.0
     # integral gain governs rate of convergence of gyroscope biases
-    Ki = 0.008
+    Ki = 0.08
     # half the sample period???????
-    halfT = 0.001
+    halfT = 0.005
     
     AngleOffset_Rol=0
     AngleOffset_Pit=0
@@ -138,8 +138,8 @@ class IMU():
         q3 = self.q3
         
         # hx, hy, hz, bx, bz
-        # vx, vy, vz 
-        # # wx, wy, wz
+        # vx, vy, vz
+        # wx, wy, wz
         # ex, ey, ez
 
         # ???????????
@@ -157,27 +157,30 @@ class IMU():
         if ax * ay * az==0:
             return
         
-        gx *= self.Gyro_Gr
-        gy *= self.Gyro_Gr
-        gz *= self.Gyro_Gr
+        # gx *= self.Gyro_Gr
+        # gy *= self.Gyro_Gr
+        # gz *= self.Gyro_Gr
         
-        norm = math.sqrt(ax * ax + ay * ay + az * az)       #acc?????
+        #acc?????
+        norm = math.sqrt(ax * ax + ay * ay + az * az)
         ax = ax /norm
         ay = ay / norm
         az = az / norm
 
-        # estimated direction of gravity and flux (v and w)              ?????????/??
-        vx = 2 * (q1q3 - q0q2)												#????xyz???
+        # estimated direction of gravity and flux (v and w) ?????????/??
+        #????xyz???
+        vx = 2 * (q1q3 - q0q2)
         vy = 2 * (q0q1 + q2q3)
         vz = q0q0 - q1q1 - q2q2 + q3q3 
 
         # error is sum of cross product between reference direction of fields and direction measured by sensors
-        ex = (ay * vz - az * vy)                            					 #???????????????
-        ey = (az * vx - ax * vz) 
-        ez = (ax * vy - ay * vx) 
+        ex = (ay * vz - az * vy)
+        #???????????????
+        ey = (az * vx - ax * vz)
+        ez = (ax * vy - ay * vx)
 
         #???????
-        self.exInt = self.exInt + ex * self.Ki  
+        self.exInt = self.exInt + ex * self.Ki
         self.eyInt = self.eyInt + ey * self.Ki
         self.ezInt = self.ezInt + ez * self.Ki
 
@@ -188,7 +191,8 @@ class IMU():
         gz = gz + self.Kp * ez + self.ezInt
         #???gz????????????????,??????????????
 
-        # integrate quaternion rate and normalise						   #????????
+        # integrate quaternion rate and normalise
+        #????????
         q0 = q0 + (-q1 * gx - q2 * gy - q3 * gz) * self.halfT
         q1 = q1 + ( q0 * gx + q2 * gz - q3 * gy) * self.halfT
         q2 = q2 + ( q0 * gy - q1 * gz + q3 * gx) * self.halfT
@@ -196,7 +200,7 @@ class IMU():
 
         # normalise quaternion
         norm = math.sqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3)
-            
+
         q0 = q0 / norm
         q1 = q1 / norm
         q2 = q2 / norm
@@ -238,7 +242,9 @@ def test():
     #     k.mpu6050read()
     
     while True:
-        print( ' x= %f, y= %f, z= %f'%( k.angle['rol'], k.angle['pit'], k.angle['yaw']),'loop time = %f\r '% (k.LoopTime.value), end = '')
+        # k.mpu6050read()
+        acc = k.mpu.get_accel_data()
+        print( ' x= %f, y= %f, z= %f, x= %f, y= %f, z= %f'%( k.angle['rol'], k.angle['pit'], k.angle['yaw'], acc['x'], acc['y'], acc['z']),'loop time = %f\r '% (k.LoopTime.value), end = '')
         # print( 'loop time = %f\r '% (k.LoopTime.value) )
         
         time.sleep(0.1)
@@ -267,7 +273,7 @@ def basicTest():
     # print("Temp: " + str(temp) + " C")
     # sleep(0.5)
 
-    sensor6050.bypass_mode_en()
+    # sensor6050.bypass_mode_en()
     pass
 
 
