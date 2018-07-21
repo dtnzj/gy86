@@ -16,9 +16,9 @@ To Do:
 Problem:
     P1. the IMUupdata func gives an incorrect result, which is think to be caused 
         by the sampling time
-    P2. this code runs too slow, it is consider to be because the low speed of python 
-        or the iic speed of raspberry pi. IIC speed is changed to test, which improve a bit, 
-        but still too slow. 
+    P2. this code runs too slow, it is consider to be because the low speed of python
+        or the iic speed of raspberry pi. IIC speed is changed to test, which improve a bit,
+        but still too slow.
 Bug:
     B1. 
 
