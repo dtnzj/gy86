@@ -9,16 +9,13 @@ Functions:
     F1. Use the IMU update to combine the data sensors.
 
 To Do:
-    TD1. add IMUupdata function
-    TD2. IMUupdata test
-    TD3. 
+    TD1. add the remote plot function to optimize the PID parameters in IMUupdate. 
     
 Problem:
-    P1. the IMUupdata func gives an incorrect result, which is think to be caused 
-        by the sampling time
     P2. this code runs too slow, it is consider to be because the low speed of python 
         or the iic speed of raspberry pi. IIC speed is changed to test, which improve a bit, 
-        but still too slow. 
+        but still too slow.
+    P3. 
 Bug:
     B1. 
 
