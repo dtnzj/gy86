@@ -79,7 +79,7 @@ class IMU():
         self.mpu = mpu6050(0x68)
         self.hmc = None
         self.ms  = None
-        self.__imuProcInit()
+        # self.__imuProcInit()
 
     def __imuProcInit(self):
         '''
@@ -251,6 +251,24 @@ def test():
 
     pass
 
+def abc():
+    k = mpu6050(0x68)
+    t_start = time.time()
+    count = 0
+    while True:
+        x = k.read_i2c_word(k.GYRO_XOUT0)
+        x= 0
+        t_end = time.time()
+        count += 1
+        if count >= 1000:
+            count = 0 
+            print ('x = %d, time = %f' % (x, t_end - t_start ))
+            t_start = t_end
+
+    
+
+
+
 
 def basicTest():
     
@@ -260,6 +278,7 @@ def basicTest():
     gyro_data = sensor6050.get_gyro_data()
     temp = sensor6050.get_temp()
 
+    
     # print("Accelerometer data")
     # print("x: " + str(accel_data['x']))
     # print("y: " + str(accel_data['y']))
@@ -279,6 +298,7 @@ def basicTest():
 
 if __name__ == '__main__':
     
-    test()
+    # test()
+    abc()
 
 
