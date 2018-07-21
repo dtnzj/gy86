@@ -23,6 +23,9 @@ Bug:
     B1. 
 
 Upgrades description:
+    2018/07/21  Realized the IMUupdata function and corrected the problem that the wrong output prolbem(P1).
+                The function output is right at the steady-state.
+                TD1, TD2, P1
     2018/07/15  Solve the bug that the loop time transmit between the IMUupdata proc 
                 and the main proc by add the transfer variable into proc args.
 
@@ -48,9 +51,9 @@ class IMU():
     # proportional gain governs rate of convergence to accelerometer/magnetometer
     Kp = 10.0
     # integral gain governs rate of convergence of gyroscope biases
-    Ki = 0.08
+    Ki = 0.008
     # half the sample period???????
-    halfT = 0.005
+    halfT = 0.012
     
     AngleOffset_Rol=0
     AngleOffset_Pit=0
@@ -107,7 +110,7 @@ class IMU():
             if count >=100:
                 count = 0
                 t_end = time.time()
-                LoopTime.value = t_end -t
+                LoopTime.value = (t_end -t) / 100
                 t = t_end
             
             # time.sleep(0.01)
@@ -206,6 +209,11 @@ class IMU():
         q2 = q2 / norm
         q3 = q3 / norm
 
+        self.q0 = q0
+        self.q1 = q1
+        self.q2 = q2
+        self.q3 = q3
+
         self.angle['yaw'] += gyr['z'] * self.Gyro_G * 0.002
 
         # pitch
@@ -244,9 +252,11 @@ def test():
     while True:
         # k.mpu6050read()
         acc = k.mpu.get_accel_data()
-        print( ' x= %f, y= %f, z= %f, x= %f, y= %f, z= %f'%( k.angle['rol'], k.angle['pit'], k.angle['yaw'], acc['x'], acc['y'], acc['z']),'loop time = %f\r '% (k.LoopTime.value), end = '')
+        print( ' angle: x= %f, y= %f, z= %f. '%( k.angle['rol'], \
+            k.angle['pit'], k.angle['yaw']),' loop time = %f\r '\
+            % (k.LoopTime.value), end = '')
         # print( 'loop time = %f\r '% (k.LoopTime.value) )
-        
+
         time.sleep(0.1)
 
     pass
