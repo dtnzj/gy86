@@ -9,40 +9,45 @@ Functions:
     F1. Use the IMU update to combine the data sensors.
 
 To Do:
-    TD1. add the remote plot function to optimize the PID parameters in IMUupdate. 
-    
+    TD1. add the remote plot function to optimize the PID parameters in IMUupdate.
+
 Problem:
-    P2. this code runs too slow, it is consider to be because the low speed of python 
-        or the iic speed of raspberry pi. IIC speed is changed to test, which improve a bit, 
+    P2. this code runs too slow, it is consider to be because the low speed of python\
+        or the iic speed of raspberry pi. IIC speed is changed to test, which improve a bit,\
         but still too slow.
-    P3. 
+    P3.
 Bug:
-    B1. 
+    B1.
 
 Upgrades description:
-    2018/07/21  Realized the IMUupdata function and corrected the problem that the wrong output prolbem(P1).
+    2018/07/23  Realized the data publish function which publish the altitude                  waveform via the UDP network.
+    2018/07/21  Realized the IMUupdata function and corrected the problem that \
+                the wrong output prolbem(P1).
                 The function output is right at the steady-state.
                 TD1, TD2, P1
-    2018/07/15  Solve the bug that the loop time transmit between the IMUupdata proc 
+    2018/07/15  Solve the bug that the loop time transmit between the IMUupdata proc\
                 and the main proc by add the transfer variable into proc args.
 
     2018/07/14  Add the IMUupdate func bases on the C code.
-                Add a child proc to run the IMU func 
+                Add a child proc to run the IMU func\
                 and print the varibles in the main proc. (P1, B1)
 '''
 
 
+# import numpy as np
 from mpu6050 import mpu6050
 from multiprocessing import Process, Manager, Value
 # from hmc5883l.hmc5883l import hmc5883l
 import time
 import math
+import socket
+import struct
 
 class IMU():
     '''
     IMU()
     '''
-    Gyro_G 	= 0.0610351
+    Gyro_G = 0.0610351
     # Gyro_Gr = 0.0010653
 
     # proportional gain governs rate of convergence to accelerometer/magnetometer
@@ -51,35 +56,36 @@ class IMU():
     Ki = 0.008
     # half the sample period???????
     halfT = 0.012
-    
-    AngleOffset_Rol=0
-    AngleOffset_Pit=0
+
+    AngleOffset_Rol = 0
+    AngleOffset_Pit = 0
 
     # quaternion elements representing the estimated orientation
     q0 = 1
     q1 = 0
     q2 = 0
     q3 = 0
-    
+
     # scaled integral error
     exInt = 0
     eyInt = 0
     ezInt = 0
-    
+
     # angle = {'yaw': 0, 'pit': 0, 'rol': 0 }
     manager = Manager()
     angle = manager.dict()
     angle['yaw'] = 0
     angle['pit'] = 0
     angle['rol'] = 0
-    
+
     LoopTime = Value('f',0)
-    
+
     def __init__(self):
         self.mpu = mpu6050(0x68)
         self.hmc = None
         self.ms  = None
         self.__imuProcInit()
+        self.__dataPubProcInit()
 
     def __imuProcInit(self):
         '''
@@ -95,7 +101,7 @@ class IMU():
         p.start()
 
         print('Data display process start.')
-    
+
     def __IMUupdataProc(self, LoopTime):
         
         t = time.time()
@@ -112,7 +118,7 @@ class IMU():
             
             # time.sleep(0.01)
 
-        
+
     def IMUupdata(self):
         '''
         Give the Euler angles with the data of gyr and acc sensor.
@@ -131,12 +137,12 @@ class IMU():
         gx = gyr['x']
         gy = gyr['y']
         gz = gyr['z']
-        
+
         q0 = self.q0
         q1 = self.q1
         q2 = self.q2
         q3 = self.q3
-        
+
         # hx, hy, hz, bx, bz
         # vx, vy, vz
         # wx, wy, wz
@@ -156,11 +162,11 @@ class IMU():
 
         if ax * ay * az==0:
             return
-        
+
         # gx *= self.Gyro_Gr
         # gy *= self.Gyro_Gr
         # gz *= self.Gyro_Gr
-        
+
         #acc?????
         norm = math.sqrt(ax * ax + ay * ay + az * az)
         ax = ax /norm
@@ -219,19 +225,46 @@ class IMU():
         self.angle['rol'] = -math.atan2(2 * q2 * q3 + 2 * q0 * q1, -2 * q1 * q1 - 2 * q2* q2 + 1)* 57.3 - self.AngleOffset_Rol
         
     
-    
-    def __DataPlotInit(self):
+    def __dataPubProcInit(self):
         '''
-        Inital the child proc of data plot function with DataPlotProc()
+        pass
         '''
+        # see multi_proc.py file for details
+        print('__dataPubProc process loading...')
+        # intial the plot data transfer queue
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-        pass
-    def DataPlotProc(self):
-        '''
-        Plot the data waveform in this child proc
-        '''
-        pass
+        # 绑定端口:
+        s.bind(('10.113.130.19', 9799))
+
+        print('Bind UDP on 9799...')
+
+        
+        # request the process
+        p = Process(target =self.__dataPubProc, args = (s,))
+        # child process start
+        p.start()
+
+        print('Data publish process start.')
     
+    
+    def __dataPubProc(self, s):
+        
+        # while True:
+        # 接收数据:
+        data, addr = s.recvfrom(1024)
+        print('Received from %s:%s.' % addr)
+        reply = 'Hello, %s!' % data.decode('utf-8')
+
+        while True:
+            # s.sendto(reply.encode('utf-8'), addr)
+            s.sendto(struct.pack('>3f', self.angle['rol'], self.angle['pit'], self.angle['yaw']),addr);
+            # print('\n%f,%f,%f\n'%(self.angle['rol'], self.angle['pit'], self.angle['yaw']))
+            
+            # print('Received from %s:%s.' % addr)
+            time.sleep(0.1)
+
+
 
     def mpu6050read(self):
         
